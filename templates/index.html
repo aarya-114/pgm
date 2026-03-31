@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}HMM Stock Market Analyzer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i> Hidden Markov Model Stock Market Analyzer
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    This tool uses Hidden Markov Models (HMMs) to identify different market regimes in stock price data.
+                    Enter a ticker symbol and parameters below to analyze market states.
+                </p>
+                
+                <form action="/analyze" method="post" class="mt-4">
+                    <div class="mb-3">
+                        <label for="ticker" class="form-label">Stock Ticker Symbol</label>
+                        <div id="ticker-search">
+                            <input type="text" class="form-control" id="ticker" name="ticker" 
+                                placeholder="Enter ticker symbol (e.g., SPY, AAPL)" required
+                                autocomplete="off">
+                            <div id="ticker-suggestions"></div>
+                        </div>
+                        <div class="form-text">
+                            Enter the ticker symbol of the stock or ETF you want to analyze.
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="period" class="form-label">Historical Period</label>
+                                <select class="form-select" id="period" name="period">
+                                    <option value="1y">1 Year</option>
+                                    <option value="2y">2 Years</option>
+                                    <option value="3y">3 Years</option>
+                                    <option value="5y" selected>5 Years</option>
+                                    <option value="10y">10 Years</option>
+                                    <option value="max">Maximum Available</option>
+                                </select>
+                                <div class="form-text">
+                                    Select the time period for historical data analysis.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="n_states" class="form-label">Number of Market States</label>
+                                <select class="form-select" id="n_states" name="n_states">
+                                    <option value="2">2 States</option>
+                                    <option value="3" selected>3 States</option>
+                                    <option value="4">4 States</option>
+                                    <option value="5">5 States</option>
+                                </select>
+                                <div class="form-text">
+                                    Select the number of market regimes to identify.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i> Analyze Market Regimes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">How It Works</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="p-3">
+                            <i class="fas fa-chart-bar fa-3x text-primary mb-3"></i>
+                            <h5>Regime Detection</h5>
+                            <p class="small">
+                                Identifies different market states based on return patterns and volatility
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="p-3">
+                            <i class="fas fa-random fa-3x text-primary mb-3"></i>
+                            <h5>Transition Analysis</h5>
+                            <p class="small">
+                                Calculates probabilities of moving between different market regimes
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="p-3">
+                            <i class="fas fa-robot fa-3x text-primary mb-3"></i>
+                            <h5>Trading Strategy</h5>
+                            <p class="small">
+                                Generates investment recommendations based on current market state
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> This tool is for educational purposes only. Always consult with a financial advisor before making investment decisions.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tickerInput = document.getElementById('ticker');
+        const suggestionsContainer = document.getElementById('ticker-suggestions');
+        
+        // Show suggestions when input is focused
+        tickerInput.addEventListener('focus', function() {
+            if (tickerInput.value.length > 0) {
+                fetchSuggestions(tickerInput.value);
+            }
+        });
+        
+        // Handle input changes
+        tickerInput.addEventListener('input', function() {
+            const query = tickerInput.value.trim();
+            
+            if (query.length > 0) {
+                fetchSuggestions(query);
+            } else {
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+        
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('#ticker-search')) {
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+        
+        // Fetch ticker suggestions from API
+        function fetchSuggestions(query) {
+            fetch(`/api/tickers?q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        renderSuggestions(data);
+                        suggestionsContainer.style.display = 'block';
+                    } else {
+                        suggestionsContainer.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching ticker suggestions:', error);
+                });
+        }
+        
+        // Render suggestions in the dropdown
+        function renderSuggestions(suggestions) {
+            suggestionsContainer.innerHTML = '';
+            
+            suggestions.forEach(suggestion => {
+                const div = document.createElement('div');
+                div.className = 'ticker-suggestion';
+                div.innerHTML = `
+                    <span class="ticker-symbol">${suggestion.symbol}</span>
+                    <span class="ticker-name">${suggestion.name}</span>
+                `;
+                
+                div.addEventListener('click', function() {
+                    tickerInput.value = suggestion.symbol;
+                    suggestionsContainer.style.display = 'none';
+                });
+                
+                suggestionsContainer.appendChild(div);
+            });
+        }
+    });
+</script>
+{% endblock %}

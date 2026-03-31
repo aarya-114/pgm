@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Error - HMM Market Analyzer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Error
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-exclamation-circle text-danger" style="font-size: 64px;"></i>
+                </div>
+                
+                <h5 class="text-center mb-3">An error occurred during analysis</h5>
+                
+                <div class="alert alert-danger">
+                    {{ error }}
+                </div>
+                
+                <p class="mb-4">
+                    This could be due to:
+                </p>
+                
+                <ul>
+                    <li>Invalid ticker symbol</li>
+                    <li>Insufficient data for the selected period</li>
+                    <li>Server-side processing issue</li>
+                    <li>Network connectivity problems</li>
+                </ul>
+                
+                <div class="text-center mt-4">
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i> Return to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

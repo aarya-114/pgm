@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block title %}{{ results.ticker }} Market Regime Analysis{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item active">{{ results.ticker }} Analysis</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i> {{ results.ticker }} Market Regime Analysis
+                    </h4>
+                    <span class="badge bg-light text-dark">
+                        {{ results.period | upper }} Historical Data
+                    </span>
+                </div>
+            </div>
+            <!-- Current Stock Price Bar -->
+            <div class="stock-price-bar">
+                <div class="row align-items-center">
+                    <div class="col-md-5">
+                        <h3 class="mb-0">${{ "%.2f"|format(results.current_price) }}</h3>
+                        <div class="mt-1">
+                            <span class="{% if results.price_change >= 0 %}price-change-positive{% else %}price-change-negative{% endif %}">
+                                {{ "+" if results.price_change >= 0 else "" }}{{ "%.2f"|format(results.price_change) }}%
+                            </span>
+                            <small class="ms-2 text-muted">Last updated: {{ results.timestamp }}</small>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="d-flex justify-content-end align-items-center">
+                            <div class="me-4">
+                                <strong>Current State:</strong> 
+                                <span class="badge state-badge-{{ results.current_state }} ms-2">State {{ results.current_state }}</span>
+                            </div>
+                            <div>
+                                <a href="https://finance.yahoo.com/quote/{{ results.ticker }}" target="_blank" class="btn btn-sm btn-outline-light">
+                                    <i class="fas fa-external-link-alt me-1"></i> Yahoo Finance
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Current Market State</h5>
+                        <div class="p-3 mb-3 state-{{ results.current_state }}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge state-badge-{{ results.current_state }} p-2">State {{ results.current_state }}</span>
+                                <span class="text-muted small">Analysis Date: {{ results.timestamp }}</span>
+                            </div>
+                            
+                            {% for state in results.state_params %}
+                                {% if loop.index0 == results.current_state %}
+                                <p>
+                                    <strong>Annualized Return:</strong> {{ "%.2f"|format(state['Annualized Return']) }}%<br>
+                                    <strong>Annualized Volatility:</strong> {{ "%.2f"|format(state['Annualized Volatility']) }}%<br>
+                                    <strong>Average Duration:</strong> {{ "%.1f"|format(state['Avg Duration (days)']) }} trading days
+                                </p>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        <h5>Transition Probabilities</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Next State</th>
+                                        <th>Probability</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for prob in results.next_state_probs %}
+                                    <tr {% if loop.index0 == results.current_state %}class="table-active"{% endif %}>
+                                        <td>
+                                            <span class="badge state-badge-{{ loop.index0 }} p-2">State {{ loop.index0 }}</span>
+                                        </td>
+                                        <td>{{ "%.2f"|format(prob * 100) }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5>State Characteristics</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>State</th>
+                                        <th>Ann. Return</th>
+                                        <th>Ann. Volatility</th>
+                                        <th>Avg. Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for state in results.state_params %}
+                                    <tr {% if loop.index0 == results.current_state %}class="table-active"{% endif %}>
+                                        <td>
+                                            <span class="badge state-badge-{{ loop.index0 }} p-2">State {{ loop.index0 }}</span>
+                                        </td>
+                                        <td>{{ "%.2f"|format(state['Annualized Return']) }}%</td>
+                                        <td>{{ "%.2f"|format(state['Annualized Volatility']) }}%</td>
+                                        <td>{{ "%.1f"|format(state['Avg Duration (days)']) }} days</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <h5 class="mt-3">Performance by State</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>State</th>
+                                        <th>Sharpe Ratio</th>
+                                        <th>Max Drawdown</th>
+                                        <th>Positive Days</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for state in results.performance_by_state %}
+                                    <tr {% if state.State == results.current_state %}class="table-active"{% endif %}>
+                                        <td>
+                                            <span class="badge state-badge-{{ state.State }} p-2">State {{ state.State }}</span>
+                                        </td>
+                                        <td>{{ "%.2f"|format(state['Sharpe Ratio']) }}</td>
+                                        <td>{{ "%.2f"|format(state['Max Drawdown']) }}%</td>
+                                        <td>{{ "%.1f"|format(state['Positive Days %']) }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Strategy Performance Card -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-area me-2"></i> Strategy Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Metric</th>
+                                        <th>HMM Strategy</th>
+                                        <th>Buy & Hold</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Annualized Return</td>
+                                        <td>{{ "%.2f"|format(results.performance['Strategy Ann. Return']) }}%</td>
+                                        <td>{{ "%.2f"|format(results.performance['Buy & Hold Ann. Return']) }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Annualized Volatility</td>
+                                        <td>{{ "%.2f"|format(results.performance['Strategy Ann. Volatility']) }}%</td>
+                                        <td>{{ "%.2f"|format(results.performance['Buy & Hold Ann. Volatility']) }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Sharpe Ratio</td>
+                                        <td>{{ "%.2f"|format(results.performance['Strategy Sharpe']) }}</td>
+                                        <td>{{ "%.2f"|format(results.performance['Buy & Hold Sharpe']) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Maximum Drawdown</td>
+                                        <td>{{ "%.2f"|format(results.performance['Strategy Max Drawdown']) }}%</td>
+                                        <td>{{ "%.2f"|format(results.performance['Buy & Hold Max Drawdown']) }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Final Value ($10,000 initial)</td>
+                                        <td>${{ "{:,.2f}".format(results.performance['Strategy Final Value']) }}</td>
+                                        <td>${{ "{:,.2f}".format(results.performance['Buy & Hold Final Value']) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card mb-3 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Current Trading Recommendation</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if results.current_state == 0 %}
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="me-3">
+                                            <span class="action-highlight action-maintain-cash">MAINTAIN CASH</span>
+                                        </div>
+                                        <div>
+                                            <strong>Current Exposure:</strong> 0% (Cash)
+                                        </div>
+                                    </div>
+                                    <p>
+                                        Maintain minimal market exposure as bearish conditions are likely to persist.
+                                    </p>
+                                {% elif results.current_state == 1 %}
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="me-3">
+                                            <span class="action-highlight action-maintain-balance">MAINTAIN BALANCE</span>
+                                        </div>
+                                        <div>
+                                            <strong>Current Exposure:</strong> 50% (Partially Invested)
+                                        </div>
+                                    </div>
+                                    <p>
+                                        Maintain balanced market exposure as neutral conditions are likely to persist.
+                                    </p>
+                                {% elif results.current_state == 2 %}
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="me-3">
+                                            <span class="action-highlight action-stay-invested">STAY INVESTED</span>
+                                        </div>
+                                        <div>
+                                            <strong>Current Exposure:</strong> 100% (Fully Invested)
+                                        </div>
+                                    </div>
+                                    <p>
+                                        Maintain full market exposure as bullish conditions are likely to persist.
+                                    </p>
+                                {% endif %}
+                                
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    <small>
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        This is a systematic recommendation based solely on the HMM model and historical patterns.
+                                        Always consider your personal risk tolerance, investment goals, and other market factors
+                                        before making investment decisions.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visualization Tabs -->
+<div class="card mb-4">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" id="visualization-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-content"
+                        type="button" role="tab" aria-selected="true">
+                    Returns by State
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="distributions-tab" data-bs-toggle="tab" data-bs-target="#distributions-content"
+                        type="button" role="tab" aria-selected="false">
+                    State Distributions
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline-content"
+                        type="button" role="tab" aria-selected="false">
+                    State Timeline
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="price-tab" data-bs-toggle="tab" data-bs-target="#price-content"
+                        type="button" role="tab" aria-selected="false">
+                    Price with Regimes
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="transitions-tab" data-bs-toggle="tab" data-bs-target="#transitions-content"
+                        type="button" role="tab" aria-selected="false">
+                    Transition Matrix
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="backtest-tab" data-bs-toggle="tab" data-bs-target="#backtest-content"
+                        type="button" role="tab" aria-selected="false">
+                    Backtest Results
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content" id="visualization-content">
+            <div class="tab-pane fade show active" id="returns-content" role="tabpanel">
+                <div class="plot-container">
+                    <img src="data:image/png;base64,{{ results.plot_images.returns }}" alt="Returns by State" class="img-fluid">
+                </div>
+                <div class="mt-3">
+                    <p class="mb-0">
+                        <strong>Interpretation:</strong> This chart shows the daily log returns of {{ results.ticker }} colored by the market state
+                        identified by the HMM. Each point represents a single trading day.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="distributions-content" role="tabpanel">
+                <div class="plot-container">
+                    <img src="data:image/png;base64,{{ results.plot_images.distributions }}" alt="State Distributions" class="img-fluid">
+                </div>
+                <div class="mt-3">
+                    <p class="mb-0">
+                        <strong>Interpretation:</strong> This chart shows the probability distributions of returns in each market state.
+                        The mean (μ) represents the average daily return, while sigma (σ) indicates the volatility.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="timeline-content" role="tabpanel">
+                <div class="plot-container">
+                    <img src="data:image/png;base64,{{ results.plot_images.timeline }}" alt="State Timeline" class="img-fluid">
+                </div>
+                <div class="mt-3">
+                    <p class="mb-0">
+                        <strong>Interpretation:</strong> This chart shows how the market regime has evolved over time,
+                        allowing you to see patterns in state transitions and identify when regime changes occurred.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="price-content" role="tabpanel">
+                <div class="plot-container">
+                    <img src="data:image/png;base64,{{ results.plot_images.price_action }}" alt="Price with Regimes" class="img-fluid">
+                </div>
+                <div class="mt-3">
+                    <p class="mb-0">
+                        <strong>Interpretation:</strong> This chart shows the price action with background colors representing
+                        the different market regimes identified by the HMM.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="transitions-content" role="tabpanel">
+                <div class="plot-container">
+                    <img src="data:image/png;base64,{{ results.plot_images.transitions }}" alt="Transition Matrix" class="img-fluid">
+                </div>
+                <div class="mt-3">
+                    <p class="mb-0">
+                        <strong>Interpretation:</strong> This heatmap shows the probability of transitioning from one state to another.
+                        The value in row i, column j represents the probability of moving from state i to state j.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="backtest-content" role="tabpanel">
+                <div class="plot-container">
+                    <img src="data:image/png;base64,{{ results.plot_images.backtest }}" alt="Backtest Results" class="img-fluid">
+                </div>
+                <div class="mt-3">
+                    <p class="mb-0">
+                        <strong>Interpretation:</strong> This chart compares the performance of a simple HMM-based strategy
+                        against a buy-and-hold approach. The bottom panel shows the market exposure level of the strategy over time.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center">
+    <a href="/" class="btn btn-primary">
+        <i class="fas fa-search me-2"></i> Analyze Another Stock
+    </a>
+</div>
+{% endblock %}
